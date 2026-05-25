@@ -1,0 +1,79 @@
+{
+  "save_dir": "D:/GaitData",
+  "image_type": "tif",
+  "frame_type": "jpg",
+  "movie_rate_kbps": 5000,
+  "record_limit_sec": 30.0,
+  "software_trigger_enabled": false,
+  "software_trigger_fps": 40.0,
+  "camera_bindings": [
+    {
+      "slot": "top",
+      "device_serial": "",
+      "output_id": "1",
+      "record_enabled": true,
+      "snapshot_enabled": true,
+      "exposure_time_us": 20000.0,
+      "acquisition_frame_rate_fps": 30.0,
+      "gain_db": 0.0,
+      "gamma_value": 1.0,
+      "black_level": 0.0
+    },
+    {
+      "slot": "left",
+      "device_serial": "",
+      "output_id": "2",
+      "record_enabled": true,
+      "snapshot_enabled": true,
+      "exposure_time_us": 20000.0,
+      "acquisition_frame_rate_fps": 30.0,
+      "gain_db": 0.0,
+      "gamma_value": 1.0,
+      "black_level": 0.0
+    },
+    {
+      "slot": "front",
+      "device_serial": "",
+      "output_id": "3",
+      "record_enabled": true,
+      "snapshot_enabled": true,
+      "exposure_time_us": 20000.0,
+      "acquisition_frame_rate_fps": 30.0,
+      "gain_db": 0.0,
+      "gamma_value": 1.0,
+      "black_level": 0.0
+    },
+    {
+      "slot": "right",
+      "device_serial": "",
+      "output_id": "4",
+      "record_enabled": true,
+      "snapshot_enabled": true,
+      "exposure_time_us": 20000.0,
+      "acquisition_frame_rate_fps": 30.0,
+      "gain_db": 0.0,
+      "gamma_value": 1.0,
+      "black_level": 0.0
+    }
+  ],
+  "pressure_sensors": [
+    {
+      "sensor_id": "left_foot",
+      "enabled": false,
+      "port": ""
+    },
+    {
+      "sensor_id": "right_foot",
+      "enabled": false,
+      "port": ""
+    }
+  ],
+  "subjects": [
+    "test"
+  ],
+  "pressure_display_max": 1000.0,
+  "pressure_scale_x": 1.0,
+  "pressure_scale_y": 2.7,
+  "pressure_colormap": "viridis",
+  "pressure_display_mode": "heatmap"
+}

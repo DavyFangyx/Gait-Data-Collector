@@ -1,0 +1,11 @@
+﻿# Install with the same interpreter used to launch the app.
+# PowerShell local-env example:
+#   .\.conda\python.exe -m pip install -r requirements.txt
+PyQt5>=5.15
+opencv-python>=4.8
+pyserial>=3.5
+numpy>=1.24
+av>=11.0
+psutil>=5.9
+matplotlib>=3.7
+scipy>=1.10
