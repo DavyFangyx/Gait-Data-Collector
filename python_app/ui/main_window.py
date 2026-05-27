@@ -25,6 +25,7 @@ from ..pressure_sensor import PressureFrame, PressureSensorManager, PressureSnap
 from ..pressure_recording import PressureOnlyRecorder
 from ..recording import MemorySnapshot, RecordingCoordinator
 from .pages.acquisition_page import AcquisitionPage
+from .pages.packet_monitor_page import PacketMonitorPage
 from .pages.pressure_page import PressureLivePage
 from .pages.record_page import RecordPage
 from .pages.replay_page import ReplayPage
@@ -212,6 +213,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self._on_pressure_scale_changed,
             self._on_pressure_colormap_changed,
         )
+        self.packet_monitor_page = PacketMonitorPage(self.settings)
+        self.packet_monitor_page.settings_saved.connect(self._save_packet_monitor_settings)
         self.replay_tabs = QtWidgets.QTabWidget()
         self.pressure_replay_page = ReplayPage(self.settings, self._load_pressure_replay_frames)
         self.camera_replay_placeholder = self._build_camera_replay_placeholder()
@@ -222,6 +225,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabs.addTab(self.acquisition_page, "摄像机加上触觉（实时显示）")
         self.tabs.addTab(self.record_page, "数据记录")
         self.tabs.addTab(self.pressure_live_page, "触觉实时显示")
+        self.tabs.addTab(self.packet_monitor_page, "压力包监控")
         self.tabs.addTab(self.replay_tabs, "数据回放")
         return self.tabs
 
@@ -287,6 +291,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pressure_scale_x_spin = self.pressure_live_page.pressure_scale_x_spin
         self.pressure_scale_y_spin = self.pressure_live_page.pressure_scale_y_spin
         self.pressure_cmap_combo = self.pressure_live_page.pressure_cmap_combo
+
+    def _save_packet_monitor_settings(self, settings: AppSettings) -> None:
+        self.settings = settings
+        self.settings_store.save(self.settings)
+        self.recording.update_settings(self.settings)
+        self.pressure_only_recording.update_settings(self.settings)
+        self.pressure_manager.update_settings(self.settings.pressure_sensors)
+        self._append_pressure_log("压力包监控页已更新左右脚串口设置。")
 
     def _build_header(self) -> QtWidgets.QWidget:
         panel = TechPanel()
@@ -761,6 +773,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.pressure_manager.update_settings(self.settings.pressure_sensors)
         self._apply_pressure_settings_to_canvases()
         self.pressure_replay_page.update_settings(self.settings)
+        self.packet_monitor_page.update_settings(self.settings)
         for line in migrated:
             self._append_pressure_log(line)
         self._append_legacy_binding_warnings()
