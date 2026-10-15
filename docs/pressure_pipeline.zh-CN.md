@@ -23,6 +23,8 @@
 
 数据不重新翻转行组。直接按来源CSV的1..48通道编号读取，不额外改变采集器保存的通道顺序。邻点来自打包的foot_sensor_layout，不用一维编号邻接，疑似点不作空间处理供体。
 
+批量发现会跳过本管线生成的结果树，包括未完成或取消的版本；也拒绝手动将其processed目录当作原始录制再次提交。没有meta.json的旧版原始CSV录制仍可发现。新录制目录名沿用`recYYYYMMDD_HHMMSS_对象_序号`；已有`rec_...`目录不需要改名，发现按目录内容而非名称匹配。
+
 输出必须在原始目录以外。GUI留空时用采集根目录旁的`<save_dir_name>_pressure_analysis`，也可选择独立分析根。Tactile项目建议选择`3_Result/processed/pressure_pipeline`。不要把报告写进原始录制树。
 
 每次运行创建唯一目录，包含：
@@ -37,6 +39,8 @@
 - artifact_manifest.json：整个结果包的文件哈希。
 
 源文件不覆盖、不删除；输出文件原子提交。failed/cancelled版本不能被回放器当成成功版本。结果包自包含用于回放，不依赖原服务器绝对路径。input_manifest中的源文件名用于追溯，不能在没有原始文件时验证其未来是否被修改。
+
+压力CSV按固定字段流式写出，不先缓存整份逐行字典；写出期间响应暂停/取消，取消时删除临时文件且不替换已有目标。数组计算仍遵守前述单次numpy/scipy调用不能瞬时抢占的限制。
 
 ## 状态解释
 
@@ -87,8 +91,11 @@ python -m python_app.pressure_pipeline /path/to/recording --output-root /indepen
 ```bash
 python -m unittest python_app.tests.test_pressure_pipeline -v
 QT_QPA_PLATFORM=offscreen python -m unittest python_app.tests.test_pressure_pipeline_qt -v
+QT_QPA_PLATFORM=offscreen python -m unittest discover -s python_app/tests -v
 ```
 
 第二条是Linux/macOS shell形式；Windows需按其终端语法设置环境变量，或使用本机桌面Qt环境。PyInstaller发布脚本已显式收集scipy及Matplotlib资源，布局CSV沿用原资源打包。
 
 验证包括合成异常、来源哈希、处理边界、后台取消/暂停、配置兼容、两类保存钩子和Qt无硬件回放。不启动相机和串口。Windows发布包构建、连续真实录制和性能对比仍须在目标机器验收；当前Linux验证不能替代该步骤。
+
+串口解析在校验失败时重新搜索同步前缀，保留随后有效帧及跨串口读取的半帧；校验通过的完整帧不会因数据区包含前缀而拆分。坏候选帧仍提供给包监控诊断，不能将其数量解释成精确的物理丢包数。

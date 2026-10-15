@@ -4,10 +4,11 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 
-from python_app.pressure_pipeline.io import digest, discover_recordings, read_side
+from python_app.pressure_pipeline.io import digest, discover_recordings, read_side, write_csv
 from python_app.pressure_pipeline.preprocessing import process_side
 from python_app.pressure_pipeline.quality import profile_side
 from python_app.pressure_pipeline.schema import Cancelled, Flag, Profile, Rules
@@ -212,6 +213,75 @@ class PipelineTests(unittest.TestCase):
         for profile in (Profile('wrong'),Profile('original',(0,)),Profile('original',(1,1)),Profile('spatial25',tuple(range(1,46)))):
             with self.assertRaises(ValueError): profile.validate()
         with self.assertRaises(ValueError): Rules(long_gap_us=0).validate()
+
+    def test_discovery_skips_analysis_outputs_and_direct_derived_inputs(self):
+        self.fixture()
+        run = run_pipeline(self.rec, self.out)
+        derived = run / 'processed' / 'original'
+        self.assertEqual(discover_recordings(self.root), [self.rec])
+        for path in (run, derived):
+            self.assertEqual(discover_recordings(path), [])
+            with self.assertRaisesRegex(ValueError, 'cannot be used as raw'):
+                run_pipeline(path, self.root / 'another_analysis')
+        self.assertFalse((self.root / 'another_analysis').exists())
+
+    def test_incomplete_analysis_is_pruned_but_legacy_csv_still_found(self):
+        self.fixture()
+        run = self.out / 'interrupted'
+        derived = run / 'processed' / 'median3'
+        derived.mkdir(parents=True)
+        (run / 'run.json').write_text(json.dumps(dict(schema_version=1, pipeline_version='1.0.0', status='cancelled')))
+        (derived / 'pressure_left.csv').write_text('partial')
+        legacy = self.root / 'legacy' / 'rec_20260101_120000_subject_1'
+        legacy.mkdir(parents=True)
+        (legacy / 'pressure_left.csv').write_text('legacy CSV without meta')
+        self.assertEqual(discover_recordings(self.root), sorted([self.rec, legacy]))
+        (run / 'profile.json').write_text('{}')
+        (run / 'run.json').write_text('{interrupted')
+        self.assertEqual(discover_recordings(self.root), sorted([self.rec, legacy]))
+
+    def test_explicit_csv_schema_is_streamed(self):
+        written = threading.Event()
+        original = csv.DictWriter.writerow
+        def observe(writer, row):
+            result = original(writer, row)
+            if row.get('frame_idx') == 0:
+                written.set()
+            return result
+        def records():
+            yield {'frame_idx': 0}
+            self.assertTrue(written.is_set(), 'Writer buffered the whole generator')
+            yield {'frame_idx': 1}
+        with patch.object(csv.DictWriter, 'writerow', observe):
+            write_csv(self.root / 'stream.csv', records(), ['frame_idx'])
+
+    def test_csv_cancellation_is_atomic_and_removes_temporary_file(self):
+        path = self.root / 'out.csv'
+        path.write_text('previous result')
+        cancel = threading.Event()
+        def records():
+            yield {'value': 1}
+            cancel.set()
+            yield {'value': 2}
+        with self.assertRaises(Cancelled):
+            write_csv(path, records(), ['value'], cancel=cancel)
+        self.assertEqual(path.read_text(), 'previous result')
+        self.assertFalse(list(self.root.glob('.writing_*')))
+
+    def test_csv_cancel_before_commit_and_report_field_union(self):
+        path = self.root / 'out.csv'
+        cancel = threading.Event()
+        def records():
+            yield {'value': 1}
+            cancel.set()
+        with self.assertRaises(Cancelled):
+            write_csv(path, records(), ['value'], cancel=cancel)
+        self.assertFalse(path.exists())
+        write_csv(path, iter([{'one': 1}, {'two': 2}]))
+        with path.open(encoding='utf-8-sig', newline='') as handle:
+            reader = csv.DictReader(handle)
+            self.assertEqual(reader.fieldnames, ['one', 'two'])
+            self.assertEqual(len(list(reader)), 2)
 
 
 if __name__=='__main__': unittest.main()

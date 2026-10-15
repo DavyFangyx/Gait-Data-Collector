@@ -262,8 +262,16 @@ def _consume_frames(buffer: bytearray, frame_size: int, prefix: bytes) -> List[b
             del buffer[:index]
         if len(buffer) < frame_size:
             break
-        frames.append(bytes(buffer[:frame_size]))
-        del buffer[:frame_size]
+        candidate = bytes(buffer[:frame_size])
+        frames.append(candidate)
+        # Preserve a following frame when noise or a duplicated prefix shifted
+        # alignment. A valid payload may itself contain prefix bytes, so only
+        # checksum failures trigger byte-wise resynchronization. Keep failed
+        # candidates available to the packet monitor's checksum diagnostics.
+        if verify_checksum(candidate):
+            del buffer[:frame_size]
+        else:
+            del buffer[:1]
     return frames
 
 

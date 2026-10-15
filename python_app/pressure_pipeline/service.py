@@ -8,7 +8,7 @@ import tempfile
 import uuid
 import numpy as np
 
-from .io import check_cancel, digest, load_metadata, read_side, write_csv, write_json
+from .io import check_cancel, digest, is_pipeline_output, load_metadata, read_side, write_csv, write_json
 from .preprocessing import process_side
 from .quality import profile_side, valid_rows, time_events
 from .schema import Cancelled, Flag, PIPELINE_VERSION, Profile, Rules, SCHEMA_VERSION
@@ -34,6 +34,8 @@ def run_pipeline(recording, output_root, *, profile=None, rules=None, layout_dir
     profile.validate(); rules.validate()
     recording = Path(recording).resolve(strict=True)
     if not recording.is_dir(): raise ValueError("Recording must be a directory")
+    if is_pipeline_output(recording):
+        raise ValueError("Processed pipeline outputs cannot be used as raw recordings")
     output_root = Path(output_root).resolve()
     if output_root == recording or recording in output_root.parents:
         raise ValueError("Analysis output must be outside the raw recording")
@@ -96,7 +98,7 @@ def run_pipeline(recording, output_root, *, profile=None, rules=None, layout_dir
                     yield dict(frame_idx=float(data.frame_ids[i]),t_us=float(data.times_us[i]),
                                valid_mask=int(data.source_valid[i]),usable=int(eligible[i]),
                                **{str(c+1):float(values[i,c]) for c in range(48)})
-            write_csv(out_file,records_fast(),fields)
+            write_csv(out_file,records_fast(),fields,cancel=cancel)
             _npz(processed/f'{side}_comparison.npz',source=data.values,processed=values,
                  time_us=data.times_us,frame_idx=data.frame_ids,flags=flags,usable=eligible,
                  source_valid=data.source_valid)

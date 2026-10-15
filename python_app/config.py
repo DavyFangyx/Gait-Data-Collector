@@ -40,7 +40,7 @@ def sanitize_subject_name(subject: str) -> str:
 
 def build_session_name(recording_time: datetime, subject: str, counter: int) -> str:
     safe_subject = sanitize_subject_name(subject)
-    return f"rec_{recording_time:%Y%m%d_%H%M%S}_{safe_subject}_{counter}"
+    return f"rec{recording_time:%Y%m%d_%H%M%S}_{safe_subject}_{counter}"
 
 def _get_labels():
     from .constants import PRESSURE_SENSOR_LABELS

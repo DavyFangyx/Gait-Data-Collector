@@ -53,9 +53,16 @@ def write_json(path, payload):
             os.unlink(tmp)
 
 
-def write_csv(path, rows, fields=None):
-    rows = list(rows)
-    fields = fields or list(dict.fromkeys(k for row in rows for k in row)) or ["status"]
+def write_csv(path, rows, fields=None, cancel=None):
+    # Processed recordings have a known schema: keep their iterator streaming.
+    # Small heterogeneous report tables still need a field-name union.
+    if fields is None:
+        collected = []
+        for row in rows:
+            check_cancel(cancel)
+            collected.append(row)
+        rows = collected
+        fields = list(dict.fromkeys(k for row in rows for k in row)) or ["status"]
     path = Path(path)
     fd, tmp = tempfile.mkstemp(prefix=".writing_", dir=path.parent)
     try:
@@ -63,10 +70,12 @@ def write_csv(path, rows, fields=None):
             writer = csv.DictWriter(f, fieldnames=fields)
             writer.writeheader()
             for row in rows:
+                check_cancel(cancel)
                 # CSV supports nan/inf literals; preserve them for numeric round trips.
                 # JSON reports separately use null for nonfinite values.
                 writer.writerow({k: v.item() if isinstance(v, np.generic) else v
                                  for k, v in row.items()})
+        check_cancel(cancel)
         os.replace(tmp, path)
     finally:
         if os.path.exists(tmp):
@@ -128,16 +137,44 @@ def load_metadata(recording):
     return payload, tuple(sides), []
 
 
+def _is_pipeline_run(path):
+    marker = Path(path) / "run.json"
+    if not marker.is_file():
+        return False
+    try:
+        state = json.loads(marker.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        # An interrupted/corrupted result must not become a raw recording.
+        return (Path(path) / "profile.json").is_file()
+    return (isinstance(state, dict) and "pipeline_version" in state
+            and "schema_version" in state)
+
+
+def is_pipeline_output(path):
+    path = Path(path).resolve()
+    return any(_is_pipeline_run(parent) for parent in (path, *path.parents))
+
+
 def discover_recordings(root,cancel=None):
     root = Path(root).resolve(strict=True)
     if not root.is_dir():
         raise ValueError("Recording root must be a directory")
+    check_cancel(cancel)
+    if is_pipeline_output(root):
+        return []
     if (root / "meta.json").is_file() or any((root / f"pressure_{s}.csv").exists() for s in ("left", "right")):
         return [root]
     found=set()
-    for pattern in ("meta.json", "pressure_left.csv", "pressure_right.csv"):
-        for path in root.rglob(pattern):
-            check_cancel(cancel)
-            if path.is_file(): found.add(path.parent)
+    def scan_error(error):
+        raise error
+    for directory, children, files in os.walk(root, followlinks=False, onerror=scan_error):
+        check_cancel(cancel)
+        directory = Path(directory)
+        if _is_pipeline_run(directory):
+            children[:] = []
+            continue
+        children.sort()
+        if {"meta.json", "pressure_left.csv", "pressure_right.csv"}.intersection(files):
+            found.add(directory)
     # meta-only recordings are included, so missing both CSVs cannot disappear.
     return sorted(found)

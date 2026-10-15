@@ -41,6 +41,34 @@ class PressureFrameBufferTests(unittest.TestCase):
         self.assertEqual(frames, [valid_frame])
         self.assertEqual(buffer, bytearray())
 
+    def test_valid_payload_prefix_does_not_split_the_frame(self):
+        prefix = FRAME_HEADER + bytes([FOOT_ID_LEFT])
+        payload = prefix * (PACKED_DATA_LEN // len(prefix))
+        first, second = _left_frame(payload), _left_frame()
+        buffer = bytearray(first + second)
+        self.assertEqual(_consume_frames(buffer, FRAME_LEN, prefix), [first, second])
+        self.assertFalse(buffer)
+
+    def test_resynchronization_preserves_partial_next_frame(self):
+        prefix = FRAME_HEADER + bytes([FOOT_ID_LEFT])
+        valid = _left_frame()
+        buffer = bytearray(prefix + valid[:-1])
+        candidates = _consume_frames(buffer, FRAME_LEN, prefix)
+        self.assertEqual(len(candidates), 1)
+        self.assertFalse(verify_checksum(candidates[0]))
+        self.assertEqual(buffer, valid[:-1])
+        buffer.extend(valid[-1:])
+        self.assertEqual(_consume_frames(buffer, FRAME_LEN, prefix), [valid])
+        self.assertFalse(buffer)
+
+    def test_split_prefix_survives_noise(self):
+        prefix = FRAME_HEADER + bytes([FOOT_ID_LEFT])
+        valid = _left_frame()
+        buffer = bytearray(b'noise' + prefix[:1])
+        self.assertEqual(_consume_frames(buffer, FRAME_LEN, prefix), [])
+        buffer.extend(valid[1:])
+        self.assertEqual(_consume_frames(buffer, FRAME_LEN, prefix), [valid])
+
 
 if __name__ == "__main__":
     unittest.main()
