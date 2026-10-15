@@ -29,6 +29,7 @@ from .pages.packet_monitor_page import PacketMonitorPage
 from .pages.pressure_page import PressureLivePage
 from .pages.record_page import RecordPage
 from .pages.replay_page import ReplayPage
+from .pages.quality_page import QualityPage
 from .settings_dialog import SettingsDialog
 from .widgets import FootPressureCanvas, MetricBar, PreviewTile, TechPanel, repolish
 
@@ -227,6 +228,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tabs.addTab(self.pressure_live_page, "触觉实时显示")
         self.tabs.addTab(self.packet_monitor_page, "压力包监控")
         self.tabs.addTab(self.replay_tabs, "数据回放")
+        self.quality_page = QualityPage(self.settings)
+        self.quality_page.settings_changed.connect(lambda: self.settings_store.save(self.settings))
+        self.tabs.addTab(self.quality_page, "数据检查与处理")
         return self.tabs
 
     def _build_camera_replay_placeholder(self) -> QtWidgets.QWidget:
@@ -735,6 +739,7 @@ class MainWindow(QtWidgets.QMainWindow):
         count, output_dir = self.pressure_only_recording.stop_recording()
         self.counter_spin.setValue(self.counter_spin.value() + 1)
         self._append_pressure_log(f"{source}，仅触觉记录完成：{count} 帧，{output_dir}")
+        self.quality_page.recording_saved(output_dir)
         self._active_record_mode = "all"
         self._sync_control_states()
 
@@ -764,6 +769,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if dialog.exec_() != QtWidgets.QDialog.Accepted:
             return
         self.settings = dialog.settings
+        self.quality_page.settings = self.settings
         self.settings_store.save(self.settings)
         self.recording.update_settings(self.settings)
         self.pressure_only_recording.update_settings(self.settings)
@@ -887,6 +893,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _sync_control_states(self) -> None:
         state = self.recording.state
         pressure_only = self.pressure_only_recording.is_recording
+        self.quality_page.set_capture_busy(pressure_only or state in {STATE_RECORDING, STATE_SAVING})
         self.state_badge.setText("仅触觉记录中" if pressure_only else self.state_texts.get(state, "待机中"))
         if pressure_only:
             self.state_badge.setText("仅触觉记录中")
@@ -951,6 +958,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.counter_spin.setValue(self.counter_spin.value() + 1)
         self._active_record_mode = "all"
         self._append_pressure_log(f"保存完成：{output_dir}")
+        self.quality_page.recording_saved(output_dir)
         QtWidgets.QMessageBox.information(self, "保存完成", f"本次采集已保存到：\n{output_dir}")
 
     def _handle_save_failed(self, message: str) -> None:
@@ -1246,6 +1254,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._stop_recording("关闭窗口，停止录制")
         if self.pressure_only_recording.is_recording:
             self._stop_pressure_only_recording("关闭窗口，停止仅触觉记录")
+        self.quality_page.shutdown()
         self.recording.wait_for_background_tasks()
         self.camera_controller.shutdown()
         self.pressure_manager.shutdown()

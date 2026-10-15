@@ -75,5 +75,10 @@
   "pressure_scale_x": 1.0,
   "pressure_scale_y": 2.7,
   "pressure_colormap": "viridis",
-  "pressure_display_mode": "heatmap"
+  "pressure_display_mode": "heatmap",
+  "pressure_quality_auto": true,
+  "pressure_quality_output_dir": "",
+  "pressure_processing_method": "original",
+  "pressure_suspect_left": [],
+  "pressure_suspect_right": []
 }

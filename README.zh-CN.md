@@ -401,3 +401,8 @@ python -m pip install -r requirements.txt
 
 建议后续直接在当前仓库基础上继续迭代。
 
+
+
+## 压力数据检查与离线处理
+
+新增保存后后台质检、历史批量检查、可选离线处理及原始/处理对照回放。自动任务保留原值，报告输出到独立目录。见 [使用与限制](docs/pressure_pipeline.zh-CN.md)。

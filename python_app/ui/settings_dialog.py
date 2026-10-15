@@ -584,5 +584,10 @@ class SettingsDialog(QtWidgets.QDialog):
             camera_bindings=bindings,
             pressure_sensors=sensors,
             subjects=subjects,
+            pressure_quality_auto=self._settings.pressure_quality_auto,
+            pressure_quality_output_dir=self._settings.pressure_quality_output_dir,
+            pressure_processing_method=self._settings.pressure_processing_method,
+            pressure_suspect_left=self._settings.pressure_suspect_left,
+            pressure_suspect_right=self._settings.pressure_suspect_right,
         )
         self.accept()

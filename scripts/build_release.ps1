@@ -56,6 +56,8 @@ Write-Host "[2/5] Building executable..."
     --collect-all av `
     --collect-submodules cv2 `
     --hidden-import numpy `
+    --collect-all scipy `
+    --collect-all matplotlib `
     --hidden-import psutil `
     --hidden-import serial `
     --add-data "$root\python_app\assets;python_app\assets" `

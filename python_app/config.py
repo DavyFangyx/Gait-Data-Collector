@@ -125,6 +125,11 @@ class AppSettings:
     pressure_scale_y: float = 2.7          # 热力图 Y 轴缩放倍数
     pressure_colormap: str = "viridis"     # 热力图配色方案
     pressure_display_mode: str = "heatmap" # heatmap / outline
+    pressure_quality_auto: bool = True
+    pressure_quality_output_dir: str = ""
+    pressure_processing_method: str = "original"
+    pressure_suspect_left: List[int] = field(default_factory=list)
+    pressure_suspect_right: List[int] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, payload: dict) -> "AppSettings":
@@ -184,6 +189,11 @@ class AppSettings:
             pressure_scale_y=float(data.get("pressure_scale_y", 2.7)),
             pressure_colormap=str(data.get("pressure_colormap", "viridis")),
             pressure_display_mode=str(data.get("pressure_display_mode", "heatmap")),
+            pressure_quality_auto=bool(data.get("pressure_quality_auto", True)),
+            pressure_quality_output_dir=str(data.get("pressure_quality_output_dir", "")),
+            pressure_processing_method=str(data.get("pressure_processing_method", "original")),
+            pressure_suspect_left=list(data.get("pressure_suspect_left", [])),
+            pressure_suspect_right=list(data.get("pressure_suspect_right", [])),
             legacy_serial_sync=SerialSyncSettings(
                 port=serial_payload.get("port", ""),
                 baud_rate=int(serial_payload.get("baud_rate", 115200)),
@@ -232,6 +242,11 @@ class AppSettings:
             "pressure_scale_y": self.pressure_scale_y,
             "pressure_colormap": self.pressure_colormap,
             "pressure_display_mode": self.pressure_display_mode,
+            "pressure_quality_auto": self.pressure_quality_auto,
+            "pressure_quality_output_dir": self.pressure_quality_output_dir,
+            "pressure_processing_method": self.pressure_processing_method,
+            "pressure_suspect_left": self.pressure_suspect_left,
+            "pressure_suspect_right": self.pressure_suspect_right,
         }
 
     def binding_for_slot(self, slot: str) -> CameraBinding | None:
