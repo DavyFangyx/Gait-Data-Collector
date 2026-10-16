@@ -1,0 +1,8 @@
+﻿subject,sample_folder,side,total_rows,channel_count,t_us_min,t_us_max,second_bucket_count,frames_per_second_min,frames_per_second_max,frames_per_second_avg,nonzero_duplicate_run_count,nonzero_adjacent_duplicate_pairs,nonzero_duplicate_frame_count,same_timestamp_run_count,same_timestamp_frame_count
+,rec20260529_163005_测试_1,left,740,48,344000,30063000,28,6,33,26.321428571428573,0,0,0,60,185
+,rec20260529_163206_测试_2,left,853,48,31000,30234000,30,16,33,28.166666666666668,0,0,0,42,108
+,rec20260529_163412_测试_3,left,862,48,15000,30390000,30,24,32,28.4,0,0,0,48,120
+,rec20260529_163618_测试_4,left,871,48,32000,30594000,30,25,32,28.466666666666665,0,0,0,35,89
+,rec20260529_163855_测试_5,left,864,48,31000,30437000,30,24,32,28.4,0,0,0,45,104
+,rec20260529_164059_测试_6,left,872,48,31000,30266000,30,23,32,28.633333333333333,0,0,0,34,90
+,rec20260529_164307_测试_7,left,852,48,47000,30282000,30,20,32,27.766666666666666,0,0,0,45,123
